@@ -1,7 +1,10 @@
 <template>
   <div>
     <h2>Estado de la Cuenta</h2>
-    <button @click="openCreateAccountForm" class="create-account-btn">Crear Cuenta</button>
+    <div class="actions">
+      <button @click="logout" class="logout-btn">Cerrar Sesión</button>
+      <button @click="openCreateAccountForm" class="create-account-btn">Crear Cuenta</button>
+    </div>
     <p v-if="loading">Cargando datos...</p>
     <p v-else-if="errorMessage">{{ errorMessage }}</p>
     <div v-else>
@@ -15,14 +18,14 @@
           <div class="balance">{{ account.balance }}</div>
         </div>
 
-        <button @click="goToTransfer(account)" class="transfer-btn">
-          &#8594; 
-        </button>
+        <div class="buttons-container">
+          <button @click="openDepositForm(account)" class="deposit-btn" title="Depositar">&#8593;</button>
+          <button @click="goToTransfer(account)" class="transfer-btn" title="Transferir">&#8594;</button>
+        </div>
       </div>
     </div>
   </div>
 </template>
-
 
 <script>
 import Swal from 'sweetalert2';
@@ -36,10 +39,13 @@ export default {
     };
   },
   methods: {
-    
+    logout() {
+      localStorage.clear(); // Limpia todo el localStorage
+      window.location.href = '/login'; // Redirige al componente de login
+    },
     goToTransfer(account) {
-    this.$emit('goToTransfer', account.accountNo);  
-  },
+      this.$emit('goToTransfer', account.accountNo);  
+    },
     openCreateAccountForm() {
       Swal.fire({
         title: 'Crear nueva cuenta',
@@ -110,68 +116,122 @@ export default {
       } catch (error) {
         Swal.fire('Error', 'Hubo un problema al comunicarse con el servidor.', 'error');
       }
-    }
-  },
-  async mounted() {
-  const hash = localStorage.getItem('authHash');
-
-  if (!hash) {
-    this.errorMessage = 'Sesión expiró. Por favor, inicie sesión de nuevo.';
-    this.loading = false;
-    return;
-  }
-
-  try {
-    const validationResponse = await fetch('https://banco-jc-back.vercel.app/user/validateUserHash', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: this.username, hash }),
-    });
-
-    if (validationResponse.ok) {
-      const validationData = await validationResponse.json();
-      if (validationData.success) {
-        const response = await fetch('https://banco-jc-back.vercel.app/account/accountBalance', {
+    },
+    openDepositForm(account) {
+      Swal.fire({
+        title: 'Depositar en la cuenta',
+        html: `
+          <div class="form-group">
+            <label for="abono">Monto a depositar</label>
+            <input type="number" id="abono" class="swal2-input" placeholder="Ej. 1000.00" required>
+          </div>
+        `,
+        focusConfirm: false,
+        preConfirm: () => {
+          const abono = document.getElementById('abono').value;
+          if (!abono) {
+            Swal.showValidationMessage('Por favor, ingrese un monto válido.');
+            return false;
+          }
+          return { abono: parseFloat(abono) };
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          this.depositToAccount(account.accountNo, result.value.abono);
+        }
+      });
+    },
+    async depositToAccount(accountNo, abono) {
+      try {
+        const response = await fetch('https://banco-jc-back.vercel.app/account/deposito', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: this.username }),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ accountNo, abono }),
         });
 
         if (response.ok) {
-          const data = await response.json();
-          if (Array.isArray(data)) {
-            this.accounts = data;  
-          } else {
-            this.errorMessage = 'La respuesta no es válida';
+          Swal.fire('Éxito', 'El depósito se realizó correctamente.', 'success');
+          const updatedAccount = await response.json();
+          const accountIndex = this.accounts.findIndex(acc => acc.accountNo === accountNo);
+          if (accountIndex !== -1) {
+            this.accounts[accountIndex].balance = updatedAccount.balance;
           }
         } else {
-          this.errorMessage = 'Error al obtener el balance';
+          Swal.fire('Error', 'No se pudo realizar el depósito. Intente nuevamente.', 'error');
+        }
+      } catch (error) {
+        Swal.fire('Error', 'Hubo un problema al comunicarse con el servidor.', 'error');
+      }
+    }
+  },
+  async mounted() {
+    const hash = localStorage.getItem('authHash');
+
+    if (!hash) {
+      this.errorMessage = 'Sesión expiró. Por favor, inicie sesión de nuevo.';
+      this.loading = false;
+      return;
+    }
+
+    try {
+      const validationResponse = await fetch('https://banco-jc-back.vercel.app/user/validateUserHash', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: this.username, hash }),
+      });
+
+      if (validationResponse.ok) {
+        const validationData = await validationResponse.json();
+        if (validationData.success) {
+          const response = await fetch('https://banco-jc-back.vercel.app/account/accountBalance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: this.username }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data)) {
+              this.accounts = data;  
+            } else {
+              this.errorMessage = 'La respuesta no es válida';
+            }
+          } else {
+            this.errorMessage = 'Error al obtener el balance';
+          }
+        } else {
+          this.errorMessage = 'El hash ha expirado. Redirigiendo a la página de inicio de sesión.';
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 3000);
         }
       } else {
-        this.errorMessage = 'El hash ha expirado. Redirigiendo a la página de inicio de sesión.';
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 3000);
+        this.errorMessage = 'Error al verificar el hash';
       }
-    } else {
-      this.errorMessage = 'Error al verificar el hash';
+    } catch (error) {
+      this.errorMessage = 'Error al conectar con el servidor';
+    } finally {
+      this.loading = false;
     }
-  } catch (error) {
-    this.errorMessage = 'Error al conectar con el servidor';
-  } finally {
-    this.loading = false;
   }
-}
-,
 };
 </script>
 
 
 
 
+
 <style scoped>
-.create-account-btn {
-  background-color: #4CAF50;
+.actions {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.logout-btn {
+  background-color: #f71f1f;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -181,8 +241,22 @@ export default {
   margin-bottom: 20px;
 }
 
+.logout-btn:hover {
+  background-color: #d32f2f;
+}
+
 .create-account-btn:hover {
   background-color: #45a049;
+}
+.create-account-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-bottom: 20px;
 }
 
 form {
