@@ -74,7 +74,6 @@ export default {
   },
   methods: {
     async submitTransfer() {
-      // Validar que la cuenta destino tenga 8 dígitos
       if (!/^\d{8}$/.test(this.toAccount)) {
         Swal.fire({
           icon: 'error',
@@ -92,7 +91,6 @@ export default {
 
         this.isLoading = true;
 
-        // Solicitar OTP
         const otpResponse = await fetch('https://banco-jc-back.vercel.app/user/otp', {
           method: 'POST',
           headers: {
@@ -105,7 +103,6 @@ export default {
           throw new Error('Error al solicitar el código OTP.');
         }
 
-        // Solicitar código OTP al usuario
         const { value: otp } = await Swal.fire({
           title: 'Ingrese el código OTP',
           input: 'text',
@@ -129,7 +126,6 @@ export default {
           return;
         }
 
-        // Verificar OTP
         Swal.fire({
           title: 'Verificando OTP...',
           allowOutsideClick: false,
@@ -158,7 +154,6 @@ export default {
           },
         });
 
-        // Realizar la transferencia
         const transferResponse = await fetch('https://banco-jc-back.vercel.app/transfers/newTransfer', {
           method: 'POST',
           headers: {
@@ -183,7 +178,6 @@ export default {
           text: 'Transferencia realizada con éxito.',
         });
 
-        // Limpiar el formulario
         this.toAccount = '';
         this.amount = null;
         this.fetchTransferHistory();
