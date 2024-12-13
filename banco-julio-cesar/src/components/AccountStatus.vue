@@ -40,8 +40,8 @@ export default {
   },
   methods: {
     logout() {
-      localStorage.clear(); // Limpia todo el localStorage
-      window.location.href = '/login'; // Redirige al componente de login
+      localStorage.clear();
+      window.location.href = '/login'; 
     },
     goToTransfer(account) {
       this.$emit('goToTransfer', account.accountNo);  
