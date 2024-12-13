@@ -37,7 +37,7 @@ export default {
       currentView: 'login',
       userHash: null,
       username: null,
-      accountNo: null,  // Nueva propiedad para almacenar el accountNo
+      accountNo: null, 
     };
   },
   created() {
@@ -80,10 +80,9 @@ export default {
     setView(view) {
       this.currentView = view;
     },
-    // Maneja el evento para cambiar la vista a 'transfer' y pasar el accountNo
     goToTransfer(accountNo) {
-      this.accountNo = accountNo;  // Establece el accountNo
-      this.setView('transfer');    // Cambia la vista a 'transfer'
+      this.accountNo = accountNo; 
+      this.setView('transfer');    
     }
   },
 };
