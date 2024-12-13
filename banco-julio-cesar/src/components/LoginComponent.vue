@@ -28,17 +28,16 @@ export default {
   },
   methods: {
     async promptForOtp() {
-    // Abre un modal de SweetAlert para capturar el OTP
     const { value: otp } = await Swal.fire({
       title: 'Ingrese el código OTP',
       input: 'text',
-      inputLabel: 'Código OTP enviado a su correo',
+      inputLabel: 'Codigo',
       inputPlaceholder: 'Ingrese el código',
       showCancelButton: true,
       confirmButtonText: 'Verificar',
       preConfirm: (otp) => {
         if (!otp) {
-          Swal.showValidationMessage("Por favor ingrese el código OTP.");
+          Swal.showValidationMessage("Por favor ingrese el codigo de 4 digitos que recibio en su correo");
         }
         return otp;
       },
@@ -91,6 +90,7 @@ export default {
         if (data.success) {
           localStorage.setItem('authHash', hash)
           localStorage.setItem('username', this.username)
+          localStorage.setItem('logged', true)
           this.$emit("loggedIn", hash);
         } else {
           Swal.fire("Error", "Código incorrecto. Intente nuevamente.", "error");

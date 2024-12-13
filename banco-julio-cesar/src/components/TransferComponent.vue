@@ -1,54 +1,26 @@
 <template>
   <div>
-    <h2>Transferencias</h2>
-    <form @submit.prevent="handleTransfer">
-      <label for="recipient">Destinatario:</label>
-      <input v-model="recipient" id="recipient" type="text" />
-      
-      <label for="amount">Monto:</label>
-      <input v-model="amount" id="amount" type="number" />
-      
-      <button type="submit">Enviar</button>
-    </form>
+    <h2>Transferir desde la cuenta: {{ accountNo }}</h2>
+    <!-- Aquí va el formulario de transferencia -->
+
+    <!-- Botón de regresar -->
+    <button @click="goBack">Regresar a la cuenta</button>
   </div>
 </template>
 
 <script>
 export default {
-  data() {
-    return {
-      recipient: '',
-      amount: 0,
-    };
+  props: {
+    accountNo: {
+      type: String,
+      required: true,
+    },
   },
   methods: {
-    async handleTransfer() {
-      console.log(`Enviando $${this.amount} a ${this.recipient}`);
-    },
+    // Emitir el evento para volver a la vista de 'account'
+    goBack() {
+      this.$emit('back'); // Emitir evento para regresar
+    }
   },
 };
 </script>
-
-<style>
-#app {
-  font-family: Arial, sans-serif;
-  text-align: center;
-  margin-top: 20px;
-}
-
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-width: 300px;
-  margin: 0 auto;
-}
-
-button {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 10px;
-  cursor: pointer;
-}
-</style>

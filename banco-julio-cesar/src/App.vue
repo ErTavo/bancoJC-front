@@ -9,10 +9,12 @@
       <AccountStatus 
         v-if="currentView === 'account'" 
         :hash="userHash" 
-        @goToTransfer="setView('transfer')" 
+        :username="username"
+        @goToTransfer="goToTransfer" 
       />
       <TransferComponent 
         v-if="currentView === 'transfer'" 
+        :accountNo="accountNo"
         @back="setView('account')" 
       />
     </div>
@@ -34,19 +36,59 @@ export default {
     return {
       currentView: 'login',
       userHash: null,
+      username: null,
+      accountNo: null,  // Nueva propiedad para almacenar el accountNo
     };
   },
+  created() {
+    this.checkSession();
+  },
   methods: {
+    async checkSession() {
+      const hash = localStorage.getItem('authHash');
+      const username = localStorage.getItem('username');
+
+      if (hash && username) {
+        try {
+          const baseUrl = "https://banco-jc-back.vercel.app";
+          const response = await fetch(`${baseUrl}/user/validateUserHash`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, hash }),
+          });
+
+          if (response.ok) {
+            this.userHash = hash;
+            this.username = username;
+            this.setView('account');
+          } else {
+            localStorage.removeItem('authHash');
+            localStorage.removeItem('username');
+          }
+        } catch (error) {
+          console.error("Error al validar la sesión:", error);
+          localStorage.removeItem('authHash');
+          localStorage.removeItem('username');
+        }
+      }
+    },
     handleLoginSuccess(hash) {
       this.userHash = hash; 
-      this.setView('account'); // Cambiar la vista a AccountStatus
+      this.username = localStorage.getItem('username');
+      this.setView('account');
     },
     setView(view) {
       this.currentView = view;
     },
+    // Maneja el evento para cambiar la vista a 'transfer' y pasar el accountNo
+    goToTransfer(accountNo) {
+      this.accountNo = accountNo;  // Establece el accountNo
+      this.setView('transfer');    // Cambia la vista a 'transfer'
+    }
   },
 };
 </script>
+
 
 
 <style>
